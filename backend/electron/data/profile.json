@@ -7,13 +7,14 @@
   "activityLevel": "light",
   "measurements": {},
   "goal": {
-    "targetWeightKg": 55
+  "targetWeightKg": 55
   },
   "goals": {
     "calories": 1628,
     "waterMl": 2000,
     "steps": 8000,
-    "sleepMinutes": 450
+    "sleepMinutes": 450,
+    "relaxMinutes": 10
   },
-  "updatedAt": "2025-12-14T13:49:52.125Z"
+  "updatedAt": "2025-12-14T15:22:01.256Z"
 }

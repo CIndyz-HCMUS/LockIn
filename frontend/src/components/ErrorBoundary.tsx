@@ -1,13 +1,7 @@
 import React from "react";
 
-type Props = {
-  children: React.ReactNode;
-};
-
-type State = {
-  error?: Error;
-  info?: React.ErrorInfo;
-};
+type Props = { children: React.ReactNode };
+type State = { error?: Error; info?: React.ErrorInfo };
 
 export class ErrorBoundary extends React.Component<Props, State> {
   state: State = {};
@@ -17,9 +11,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // log ra console để debug
-    console.error("ErrorBoundary caught:", error, info);
-    this.setState({ error, info });
+    // ✅ log rõ để debug
+    console.error("ErrorBoundary caught:", error);
+    console.error("Component stack:", info?.componentStack);
+    console.error("Stack:", (error as any)?.stack);
+
+    // ✅ CHỈ set info (error đã set ở getDerivedStateFromError)
+    this.setState({ info });
   }
 
   render() {
@@ -45,7 +43,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             {this.state.error.stack || "(no stack)"}
           </pre>
 
-          {this.state.info?.componentStack && (
+          {this.state.info?.componentStack ? (
             <>
               <h3 style={{ margin: "16px 0 8px" }}>Component stack</h3>
               <pre
@@ -61,7 +59,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 {this.state.info.componentStack}
               </pre>
             </>
-          )}
+          ) : null}
 
           <button
             onClick={() => window.location.reload()}

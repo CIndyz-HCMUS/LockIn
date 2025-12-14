@@ -1,101 +1,193 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { createWorkoutLog, searchExercises, type Exercise } from "../../services/exerciseService";
+import { searchExercises, type Exercise } from "../../services/exerciseService";
+import { createWorkoutLog } from "../../services/workoutLogService";
 
-export function AddWorkoutModal(props: {
+type Props = {
   open: boolean;
   dateKey: string;
-  category: string; // "Cardiovascular" | "Strength Training"
+  category: string;
   onClose: () => void;
-}) {
-  const { open, dateKey, category, onClose } = props;
+};
 
+export function AddWorkoutModal({ open, dateKey, category, onClose }: Props) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<Exercise[]>([]);
-  const [exerciseId, setExerciseId] = useState<number | "">("");
-  const [minutes, setMinutes] = useState(30);
+  const [selectedId, setSelectedId] = useState<number | "">("");
+  const [minutes, setMinutes] = useState<number>(10);
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    let alive = true;
-    (async () => {
-      const res = await searchExercises(q);
-      if (!alive) return;
-      setItems(res);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [open, q]);
+    setQ("");
+    setItems([]);
+    setSelectedId("");
+    setMinutes(10);
+    setErr(null);
+  }, [open]);
 
-  const filtered = useMemo(() => {
-    const c = category.toLowerCase();
-    return items.filter((x) => (x.category ?? "").toLowerCase() === c);
-  }, [items, category]);
+  async function load() {
+    const res = await searchExercises({ q, category, limit: 50, offset: 0 });
+    setItems(res.items);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, category]);
+
+  const selected = useMemo(
+    () => items.find((x) => x.id === selectedId) ?? null,
+    [items, selectedId]
+  );
 
   if (!open) return null;
 
+  async function onSave() {
+    setErr(null);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      setErr("Minutes must be > 0");
+      return;
+    }
+    if (!selectedId) {
+      setErr("Please choose an exercise");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createWorkoutLog({
+        dateKey,
+        minutes,
+        exerciseId: Number(selectedId),
+      });
+      window.dispatchEvent(new CustomEvent("lockin:refresh"));
+      onClose();
+    } catch (e: any) {
+      setErr(e?.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "grid", placeItems: "center", zIndex: 50 }}>
-      <div style={{ width: 520, background: "#fff", borderRadius: 12, padding: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0 }}>Add Exercise — {category}</h3>
-          <button onClick={onClose} disabled={saving}>✕</button>
+    <div
+      style={styles.overlay}
+      onMouseDown={(e) => {
+        // ✅ chỉ đóng khi click đúng nền overlay
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div style={styles.card} onMouseDown={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 16 }}>Add workout</div>
+            <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+              Date: <b>{dateKey}</b> • Category: <b>{category}</b>
+            </div>
+          </div>
+          <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 12, color: "#666" }}>Search</div>
-          <input value={q} onChange={(e) => setQ(e.target.value)} style={inp} placeholder="e.g. jogging" />
-        </div>
+        <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search exercise..."
+            style={styles.input}
+          />
+          <button style={styles.btnOutline} onClick={load} disabled={saving}>Search</button>
 
-        <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 12, color: "#666" }}>Exercise</div>
           <select
-            style={inp}
-            value={exerciseId}
-            onChange={(e) => setExerciseId(e.target.value ? Number(e.target.value) : "")}
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : "")}
+            style={styles.input}
           >
-            <option value="">Select…</option>
-            {filtered.map((x) => (
+            <option value="">-- Choose exercise --</option>
+            {items.map((x) => (
               <option key={x.id} value={x.id}>
-                {x.title}
+                {x.title} ({x.caloriesPerMinute} kcal/min)
               </option>
             ))}
           </select>
-        </div>
 
-        <div style={{ marginTop: 12 }}>
+          {selected?.desc ? <div style={{ fontSize: 12, color: "#666" }}>{selected.desc}</div> : null}
+
           <div style={{ fontSize: 12, color: "#666" }}>Minutes</div>
-          <input type="number" min={1} step={1} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} style={inp} />
-        </div>
+          <input
+            type="number"
+            min={1}
+            value={minutes}
+            onChange={(e) => setMinutes(Number(e.target.value))}
+            style={styles.input}
+          />
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          <button onClick={onClose} disabled={saving}>Cancel</button>
-          <button
-            disabled={saving || !exerciseId}
-            onClick={async () => {
-              if (!exerciseId) return;
-              setSaving(true);
-              try {
-                await createWorkoutLog({ dateKey, exerciseId: Number(exerciseId), minutes: Number(minutes) });
-                window.dispatchEvent(new CustomEvent("lockin:refresh"));
-                onClose();
-              } finally {
-                setSaving(false);
-              }
-            }}
-          >
-            Save
-          </button>
+          {err ? <div style={{ color: "#b00020", fontSize: 12 }}>{err}</div> : null}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 6 }}>
+            <button style={styles.btnOutline} onClick={onClose} disabled={saving}>Cancel</button>
+            <button style={styles.btn} onClick={onSave} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-const inp: React.CSSProperties = {
-  width: "100%",
-  padding: 10,
-  border: "1px solid #ddd",
-  borderRadius: 10,
+const styles: Record<string, React.CSSProperties> = {
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.35)",
+    display: "grid",
+    placeItems: "center",
+    zIndex: 9999,
+    padding: 16,
+  },
+  card: {
+    width: 560,
+    maxWidth: "95vw",
+    background: "#fff",
+    borderRadius: 14,
+    border: "1px solid #eee",
+    padding: 14,
+  },
+  closeBtn: {
+    border: "1px solid #ddd",
+    background: "#fff",
+    borderRadius: 10,
+    width: 38,
+    height: 38,
+    cursor: "pointer",
+    fontWeight: 900,
+  },
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid #ddd",
+    outline: "none",
+    fontFamily: "inherit",
+  },
+  btn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid #111",
+    background: "#111",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 900,
+  },
+  btnOutline: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid #ddd",
+    background: "#fff",
+    cursor: "pointer",
+    fontWeight: 900,
+  },
 };

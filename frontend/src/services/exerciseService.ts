@@ -1,35 +1,31 @@
-import { getJson, postJson } from "./http";
+import { getJson } from "./http";
 
 export type Exercise = {
   id: number;
   title: string;
   category: string;
-  met?: number;
+  caloriesPerMinute: number;
+  desc?: string;
 };
 
-export type WorkoutLog = {
-  id: number;
-  loggedAt: string;
-  exerciseId: number;
-  titleSnapshot: string;
-  categorySnapshot: string;
-  minutes: number;
-  caloriesBurned: number;
+export type SearchExercisesResponse = {
+  items: Exercise[];
+  total: number;
+  limit: number;
+  offset: number;
 };
 
-export async function searchExercises(query: string): Promise<Exercise[]> {
-  const res = await getJson<{ items: Exercise[] }>(`/exercises?query=${encodeURIComponent(query)}`);
-  return res.items ?? [];
-}
-
-export async function createWorkoutLog(payload: {
-  dateKey: string; // YYYY-MM-DD
-  exerciseId: number;
-  minutes: number;
-}): Promise<WorkoutLog> {
-  return postJson<WorkoutLog>(`/logs/workouts`, {
-    loggedAt: `${payload.dateKey}T12:00:00`,
-    exerciseId: payload.exerciseId,
-    minutes: payload.minutes,
-  });
+export async function searchExercises(params: {
+  q?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const sp = new URLSearchParams();
+  if (params.q) sp.set("q", params.q);
+  if (params.category) sp.set("category", params.category);
+  if (params.limit != null) sp.set("limit", String(params.limit));
+  if (params.offset != null) sp.set("offset", String(params.offset));
+  const qs = sp.toString();
+  return getJson<SearchExercisesResponse>(`/exercises${qs ? `?${qs}` : ""}`);
 }
