@@ -1,0 +1,26 @@
+[
+  {
+    "token": "70f9fded-db35-42b2-914b-fa9b8f382715cdc074253fe86cf8d7bbe4ba7731713d",
+    "userId": 2,
+    "createdAt": "2025-12-14T14:47:47.681Z",
+    "expiresAt": "2025-12-15T14:47:47.681Z"
+  },
+  {
+    "token": "689c8539-5746-42ae-9d2a-ab68cb7c9cc4490ac2856d89a2062e4963bf8389f177",
+    "userId": 2,
+    "createdAt": "2025-12-14T14:43:59.320Z",
+    "expiresAt": "2025-12-15T14:43:59.320Z"
+  },
+  {
+    "token": "bdc66b7f-fdb4-4ee4-ae05-70763aae2b3ef3b9dd1eb4bc01321b28589c29b532a1",
+    "userId": 2,
+    "createdAt": "2025-12-14T14:38:00.681Z",
+    "expiresAt": "2025-12-15T14:38:00.681Z"
+  },
+  {
+    "token": "df4ce7a5-379f-4446-b33d-9aa610e3a1b2a43bac1c98c0d5e91c1e717c32a24b60",
+    "userId": 2,
+    "createdAt": "2025-12-14T13:53:41.763Z",
+    "expiresAt": "2025-12-15T13:53:41.763Z"
+  }
+]

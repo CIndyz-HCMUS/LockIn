@@ -1,0 +1,8 @@
+{
+  "name": "lockin-demo-json",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"wire later\"",
+    "build": "echo \"wire later\""
+  }
+}
