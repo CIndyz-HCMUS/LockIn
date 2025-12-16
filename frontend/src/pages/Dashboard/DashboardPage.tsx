@@ -7,6 +7,7 @@ import { listMealLogs, deleteMealLog, type MealLog, type MealType } from "../../
 import { QuickAddWaterModal } from "../../components/modals/QuickAddWaterModal";
 import { QuickAddStepsModal } from "../../components/modals/QuickAddStepsModal";
 import { QuickAddSleepModal } from "../../components/modals/QuickAddSleepModal";
+import { listWorkoutLogs, type WorkoutLog } from "../../services/workoutLogService";
 
 type DashboardDto = {
   date: string;
@@ -67,6 +68,7 @@ export function DashboardPage() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [addCategory, setAddCategory] = useState("Cardiovascular");
+  const [workoutLogs, setWorkoutLogs] = useState<WorkoutLog[]>([]);
 
   const nav = useNavigate();
 
@@ -100,6 +102,8 @@ export function DashboardPage() {
     try {
       const res = await getJson<DashboardDto>(`/stats/today?date=${dateKey}`);
       setData(res);
+      const logs = await listWorkoutLogs(todayKey()); // hoặc dateKey state của bạn
+      setWorkoutLogs(Array.isArray(logs) ? logs : []);  
       await refreshMealsOnly();
     } catch (e: any) {
       console.error(e);

@@ -1,64 +1,128 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { searchExercises, type Exercise } from "../../services/exerciseService";
 import { AddWorkoutModal } from "../../components/modals/AddWorkoutModal";
 import { todayKey } from "../../utils/date";
+import { searchExercises, type Exercise } from "../../services/exerciseService";
+import { listWorkoutLogs, deleteWorkoutLog } from "../../services/workoutLogService";
+
+type WorkoutLog = {
+  id: number;
+  dateKey?: string;
+  loggedAt?: string;
+  exerciseId: number;
+  minutes: number;
+  caloriesBurned?: number;
+  // backend có thể trả category luôn, không có thì mình derive từ exercise
+  category?: string;
+};
+
+function norm(s: any) {
+  return String(s ?? "").trim().toLowerCase();
+}
+
+function unwrapItems<T>(res: any): T[] {
+  if (Array.isArray(res)) return res as T[];
+  if (Array.isArray(res?.items)) return res.items as T[];
+  return [];
+}
 
 export function ExercisesPage() {
   const [dateKey, setDateKey] = useState(todayKey());
   const [q, setQ] = useState("");
-  const [items, setItems] = useState<Exercise[]>([]);
+
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string>("");
+  const [err, setErr] = useState<string | null>(null);
 
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState("Cardiovascular");
 
-  useEffect(() => {
-    let alive = true;
+  const exerciseById = useMemo(() => {
+    const m = new Map<number, Exercise>();
+    for (const x of exercises) m.set(x.id, x);
+    return m;
+  }, [exercises]);
+
+  async function loadAll() {
     setLoading(true);
-    setErr("");
+    setErr(null);
+    try {
+      const [exRes, logRes] = await Promise.all([
+        // load library để map title/category/met
+        searchExercises({ query: "", limit: 1000, offset: 0 }),
+        // load logs theo ngày
+        listWorkoutLogs(dateKey),
+      ]);
 
-    const t = setTimeout(async () => {
-      try {
-        // NOTE: project bạn đang gọi searchExercises(q) (không chắc service signature),
-        // nên mình giữ cách gọi như cũ và normalize response.
-        const res: any = await (searchExercises as any)(q);
+      setExercises(unwrapItems<Exercise>(exRes));
+      setLogs(unwrapItems<WorkoutLog>(logRes));
+    } catch (e: any) {
+      console.error(e);
+      setErr(e?.message ?? "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-        if (!alive) return;
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateKey]);
 
-        // ✅ Normalize: res có thể là Exercise[] hoặc { items: Exercise[] }
-        const arr: Exercise[] = Array.isArray(res)
-          ? res
-          : Array.isArray(res?.items)
-          ? res.items
-          : [];
+  // reload khi modal save xong (AddWorkoutModal dispatch lockin:refresh)
+  useEffect(() => {
+    const handler = () => loadAll();
+    window.addEventListener("lockin:refresh", handler as any);
+    return () => window.removeEventListener("lockin:refresh", handler as any);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateKey]);
 
-        setItems(arr);
-      } catch (e: any) {
-        console.error(e);
-        if (!alive) return;
-        setItems([]);
-        setErr(e?.message ?? "Failed to load exercises");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    }, 250);
+  const filteredLogs = useMemo(() => {
+    const qq = norm(q);
+    if (!qq) return logs;
+    return logs.filter((l) => {
+      const ex = exerciseById.get(Number((l as any).exerciseId));
+      const name = ex ? (ex as any).title ?? "" : "";
+      return norm(name).includes(qq);
+    });
+  }, [logs, q, exerciseById]);
 
-    return () => {
-      alive = false;
-      clearTimeout(t);
-    };
-  }, [q]);
+  function categoryOfLog(l: WorkoutLog) {
+    const fromLog = (l as any).category;
+    if (fromLog) return String(fromLog);
+    const ex = exerciseById.get(Number((l as any).exerciseId));
+    return String((ex as any)?.category ?? "Other");
+  }
 
-  const cardio = useMemo(
-    () => (Array.isArray(items) ? items : []).filter((x) => (x.category ?? "").toLowerCase() === "cardiovascular"),
-    [items]
+  const cardioLogs = useMemo(
+    () => filteredLogs.filter((l) => norm(categoryOfLog(l)) === "cardiovascular"),
+    [filteredLogs]
+  );
+  const strengthLogs = useMemo(
+    () => filteredLogs.filter((l) => norm(categoryOfLog(l)) === "strength training"),
+    [filteredLogs]
   );
 
-  const strength = useMemo(
-    () => (Array.isArray(items) ? items : []).filter((x) => (x.category ?? "").toLowerCase() === "strength training"),
-    [items]
+  const cardioTotal = useMemo(
+    () => cardioLogs.reduce((sum, l: any) => sum + Number(l.caloriesBurned ?? 0), 0),
+    [cardioLogs]
   );
+  const strengthTotal = useMemo(
+    () => strengthLogs.reduce((sum, l: any) => sum + Number(l.caloriesBurned ?? 0), 0),
+    [strengthLogs]
+  );
+
+  async function onDeleteLog(id: number) {
+    const ok = window.confirm("Delete this workout log?");
+    if (!ok) return;
+    try {
+      await deleteWorkoutLog(id);
+      await loadAll();
+    } catch (e: any) {
+      console.error(e);
+      setErr(e?.message ?? "Delete failed");
+    }
+  }
 
   return (
     <div>
@@ -67,7 +131,7 @@ export function ExercisesPage() {
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
         <input
           style={{ flex: 1, padding: 10, border: "1px solid #ddd", borderRadius: 10 }}
-          placeholder="Search exercises…"
+          placeholder="Search logged workouts…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -75,24 +139,30 @@ export function ExercisesPage() {
       </div>
 
       {loading ? <div>Loading…</div> : null}
-      {err ? <div style={{ color: "#b00020", fontWeight: 700, marginBottom: 10 }}>{err}</div> : null}
+      {err ? <div style={{ color: "crimson" }}>{err}</div> : null}
 
-      <Section
+      <LogSection
         title="Cardiovascular"
-        items={cardio}
+        totalKcal={cardioTotal}
+        logs={cardioLogs}
+        exerciseById={exerciseById}
         onAdd={() => {
           setCategory("Cardiovascular");
           setOpen(true);
         }}
+        onDeleteLog={onDeleteLog}
       />
 
-      <Section
+      <LogSection
         title="Strength Training"
-        items={strength}
+        totalKcal={strengthTotal}
+        logs={strengthLogs}
+        exerciseById={exerciseById}
         onAdd={() => {
           setCategory("Strength Training");
           setOpen(true);
         }}
+        onDeleteLog={onDeleteLog}
       />
 
       <AddWorkoutModal open={open} dateKey={dateKey} category={category} onClose={() => setOpen(false)} />
@@ -100,34 +170,63 @@ export function ExercisesPage() {
   );
 }
 
-function Section(props: { title: string; items: Exercise[]; onAdd: () => void }) {
-  const { title, items, onAdd } = props;
+function LogSection(props: {
+  title: string;
+  totalKcal: number;
+  logs: any[];
+  exerciseById: Map<number, Exercise>;
+  onAdd: () => void;
+  onDeleteLog: (id: number) => void;
+}) {
+  const { title, totalKcal, logs, exerciseById, onAdd, onDeleteLog } = props;
 
   return (
     <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12, marginTop: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h3 style={{ margin: 0 }}>{title}</h3>
-        <button onClick={onAdd}>Add Exercise</button>
+        <div>
+          <h3 style={{ margin: 0 }}>{title}</h3>
+          <button onClick={onAdd} style={{ marginTop: 6 }}>
+            Add Exercise
+          </button>
+        </div>
+        <div style={{ fontSize: 18 }}>{Math.round(totalKcal)} kcal</div>
       </div>
 
-      <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-        {items.map((x) => {
-          const kcalPerMin = (x as any).caloriesPerMinute;
-          const met = (x as any).met;
-          const right = kcalPerMin != null ? `${kcalPerMin} kcal/min` : met != null ? `MET ${met}` : "-";
+      <div style={{ marginTop: 12, borderTop: "1px solid #eee", paddingTop: 10 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 80, color: "#666" }}>
+          <div>Minutes</div>
+          <div>Calories burned</div>
+        </div>
 
-          return (
-            <div key={x.id} style={{ padding: 12, border: "1px solid #eee", borderRadius: 10 }}>
-              <div style={{ fontWeight: 700 }}>{(x as any).title ?? (x as any).name ?? "-"}</div>
-
-              <div style={{ fontSize: 12, color: "#666" }}>
-                {x.category} • {right}
-              </div>
-            </div>
-          );
-        })}
-
-        {items.length === 0 ? <div style={{ color: "#999" }}>No exercises</div> : null}
+        {logs.length === 0 ? (
+          <div style={{ color: "#999", marginTop: 12 }}>No exercises yet.</div>
+        ) : (
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            {logs.map((l: any) => {
+              const ex = exerciseById.get(Number(l.exerciseId));
+              const title = (ex as any)?.title ?? `Exercise #${l.exerciseId}`;
+              return (
+                <div
+                  key={l.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 120px 160px 90px",
+                    gap: 10,
+                    alignItems: "center",
+                    padding: 10,
+                    border: "1px solid #eee",
+                    borderRadius: 10,
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>{title}</div>
+                  <div style={{ textAlign: "right" }}>{l.minutes}</div>
+                  <div style={{ textAlign: "right" }}>{Math.round(Number(l.caloriesBurned ?? 0))} kcal</div>
+                  <button onClick={() => onDeleteLog(l.id)}>Delete</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

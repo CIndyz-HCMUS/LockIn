@@ -7,8 +7,9 @@ import { appendWorkout, listWorkoutsByDate, WorkoutLog } from "./workouts.repo.j
 type Exercise = { id: number; title: string; category: string; met?: number };
 type Profile = { weightKg?: number };
 
-const EXERCISES_PATH = path.join(env.dataDir, "exercises.json");
+const EXERCISES_PATH = path.join(env.rootDataDir, "exercises.json");
 const PROFILE_PATH = path.join(env.dataDir, "profile.json");
+
 
 function calcCaloriesBurned(met: number | undefined, weightKg: number, minutes: number) {
   // kcal = MET * 3.5 * weight(kg) / 200 * minutes

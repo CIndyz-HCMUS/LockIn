@@ -61,5 +61,13 @@ export async function delJson<T>(path: string): Promise<T> {
   const res = await parseOrThrow(
     await fetch(`${BASE}${path}`, { method: "DELETE", headers: authHeaders() })
   );
-  return (await res.json()) as T;
+
+  // DELETE có thể trả 204 (no content)
+  if (res.status === 204) return undefined as unknown as T;
+
+  const text = await res.text();
+  if (!text) return undefined as unknown as T;
+
+  return JSON.parse(text) as T;
 }
+
