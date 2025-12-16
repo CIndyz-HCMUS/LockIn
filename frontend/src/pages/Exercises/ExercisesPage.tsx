@@ -118,7 +118,8 @@ function Section(props: { title: string; items: Exercise[]; onAdd: () => void })
 
           return (
             <div key={x.id} style={{ padding: 12, border: "1px solid #eee", borderRadius: 10 }}>
-              <div style={{ fontWeight: 700 }}>{x.title}</div>
+              <div style={{ fontWeight: 700 }}>{(x as any).title ?? (x as any).name ?? "-"}</div>
+
               <div style={{ fontSize: 12, color: "#666" }}>
                 {x.category} • {right}
               </div>

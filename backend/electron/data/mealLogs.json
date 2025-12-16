@@ -1,5 +1,18 @@
 [
   {
+    "id": 1765782687538,
+    "loggedAt": "2025-12-15T12:00:00",
+    "mealType": "breakfast",
+    "foodId": 1,
+    "foodName": "White rice (cooked)",
+    "brand": null,
+    "grams": 150,
+    "calories": 195,
+    "protein": 4.1,
+    "carb": 42.3,
+    "fat": 0.5
+  },
+  {
     "id": 1765707062027,
     "loggedAt": "2025-12-14T12:00:00",
     "mealType": "breakfast",

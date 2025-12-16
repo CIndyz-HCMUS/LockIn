@@ -1,51 +1,49 @@
 import path from "path";
-import { env } from "../../config/env";
-import { readJsonFile } from "../../storage/jsonStore";
+import { env } from "../../config/env.js";
+import { readJsonFile } from "../../storage/jsonStore.js";
 
 export type Exercise = {
   id: number;
-  title: string;
+  title?: string;
+  name?: string;
   category: string;
-  caloriesPerMinute: number;
-  desc?: string;
-  isVerified?: boolean;
-  createdAt?: string;
+  met?: number;
 };
 
-const FILE = path.join(env.dataDir, "exercises.json");
+const FILE = path.join(env.rootDataDir, "exercises.json");
+
+function label(x: Exercise) {
+  return String(x.title ?? x.name ?? "").trim();
+}
+
+export async function readAllExercises(): Promise<Exercise[]> {
+  return readJsonFile<Exercise[]>(FILE, []);
+}
 
 export async function searchExercises(params: {
-  q?: string;
+  query?: string;
   category?: string;
-  limit?: number;
-  offset?: number;
-}) {
-  const q = (params.q ?? "").trim().toLowerCase();
-  const category = (params.category ?? "").trim();
-  const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
-  const offset = Math.max(0, Number(params.offset ?? 0));
+  limit: number;
+  offset: number;
+}): Promise<{ items: Exercise[]; total: number }> {
+  const { query, category, limit, offset } = params;
 
-  const all = await readJsonFile<Exercise[]>(FILE, []);
+  const all = await readAllExercises();
+  const q = String(query ?? "").trim().toLowerCase();
+  const c = String(category ?? "").trim().toLowerCase();
 
   let filtered = all;
 
-  if (category) filtered = filtered.filter((x) => x.category === category);
-
-  if (q) {
-    filtered = filtered.filter((x) => {
-      const hay = `${x.title} ${x.desc ?? ""}`.toLowerCase();
-      return hay.includes(q);
-    });
+  if (q.length > 0) {
+    filtered = filtered.filter((x) => label(x).toLowerCase().includes(q));
   }
 
-  filtered = filtered.sort((a, b) => a.title.localeCompare(b.title));
+  if (c.length > 0 && c !== "all") {
+    filtered = filtered.filter((x) => String(x.category ?? "").toLowerCase() === c);
+  }
 
   const total = filtered.length;
   const items = filtered.slice(offset, offset + limit);
-  return { items, total, limit, offset };
+  return { items, total };
 }
 
-export async function getExerciseById(id: number): Promise<Exercise | null> {
-  const all = await readJsonFile<Exercise[]>(FILE, []);
-  return all.find((x) => x.id === id) ?? null;
-}
