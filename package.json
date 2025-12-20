@@ -1,8 +1,12 @@
 {
-  "name": "lockin-demo-json",
+  "name": "lockin-root",
   "private": true,
   "scripts": {
-    "dev": "echo \"wire later\"",
-    "build": "echo \"wire later\""
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev": "concurrently -k \"npm run dev:backend\" \"npm run dev:frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
   }
 }

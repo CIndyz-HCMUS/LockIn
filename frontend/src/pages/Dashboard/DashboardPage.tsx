@@ -103,7 +103,7 @@ export function DashboardPage() {
       const res = await getJson<DashboardDto>(`/stats/today?date=${dateKey}`);
       setData(res);
       const logs = await listWorkoutLogs(todayKey()); // hoặc dateKey state của bạn
-      setWorkoutLogs(Array.isArray(logs) ? logs : []);  
+      setWorkoutLogs(Array.isArray(logs) ? logs : []);  ``
       await refreshMealsOnly();
     } catch (e: any) {
       console.error(e);

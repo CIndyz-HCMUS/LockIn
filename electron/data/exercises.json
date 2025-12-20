@@ -1,7 +1,0 @@
-[
-  { "id": 1, "title": "Jogging", "category": "Cardiovascular", "met": 7.0 },
-  { "id": 2, "title": "Jump rope", "category": "Cardiovascular", "met": 11.0 },
-  { "id": 3, "title": "Cycling", "category": "Cardiovascular", "met": 6.8 },
-  { "id": 4, "title": "Push-up", "category": "Strength Training", "met": 3.8 },
-  { "id": 5, "title": "Weight lifting", "category": "Strength Training", "met": 6.0 }
-]
