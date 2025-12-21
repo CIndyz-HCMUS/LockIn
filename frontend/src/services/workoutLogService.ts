@@ -1,40 +1,44 @@
-import { delJson, getJson, postJson } from "./http";
+// frontend/src/services/workoutLogService.ts
+import { getJson, postJson, delJson } from "./http";
 
 export type WorkoutLog = {
-  id: number;
-  dateKey: string;        // "YYYY-MM-DD"
-  exerciseId: number;
-  minutes: number;
-  caloriesBurned?: number;
+  id: number | string;
+  date: string; // YYYY-MM-DD
+
+  // exercise info
+  exerciseId?: number | string;
+  title: string; // exercise title/name
+  category?: string;
+
+  minutes?: number;
+
+  // calories burned
+  caloriesBurned: number;
+
   createdAt?: string;
+  loggedAt?: string;
 };
 
-function unwrapArray<T>(data: any): T[] {
-  if (Array.isArray(data)) return data as T[];
-  if (Array.isArray(data?.items)) return data.items as T[];
-  return [];
+type ListResponse<T> = { items: T[] } | T[];
+
+/**
+ * GET /logs/workouts?date=YYYY-MM-DD
+ */
+export async function listWorkoutLogs(dateKey: string): Promise<ListResponse<WorkoutLog>> {
+  return getJson(`/logs/workouts?date=${encodeURIComponent(dateKey)}`);
 }
 
-// ✅ List logs theo ngày (Dashboard dùng cái này)
-export async function listWorkoutLogs(dateKey: string): Promise<WorkoutLog[]> {
-  const sp = new URLSearchParams();
-
-  // backend của bạn có thể dùng "date" hoặc "dateKey"
-  sp.set("date", dateKey);
-
-  const data = await getJson<any>(`/logs/workouts?${sp.toString()}`);
-  return unwrapArray<WorkoutLog>(data);
+/**
+ * POST /logs/workouts
+ * body: { date, title, minutes?, caloriesBurned, category?, exerciseId? }
+ */
+export async function createWorkoutLog(payload: Partial<WorkoutLog>) {
+  return postJson(`/logs/workouts`, payload);
 }
 
-// ✅ Create log (AddWorkoutModal đang gọi)
-export async function createWorkoutLog(payload: {
-  dateKey: string;
-  exerciseId: number;
-  minutes: number;
-}): Promise<WorkoutLog> {
-  return postJson<WorkoutLog>(`/logs/workouts`, payload);
-}
-
-export async function deleteWorkoutLog(id: number): Promise<{ ok: true }> {
-  return delJson<{ ok: true }>(`/logs/workouts/${id}`);
+/**
+ * DELETE /logs/workouts/:id
+ */
+export async function deleteWorkoutLog(id: number | string) {
+  return delJson(`/logs/workouts/${id}`);
 }

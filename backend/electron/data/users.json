@@ -1,5 +1,14 @@
 [
   {
+    "id": 3,
+    "email": "123456@gmail.com",
+    "name": "Trang  Vu",
+    "age": 20,
+    "createdAt": "2025-12-21T00:30:00.317Z",
+    "salt": "d89b55f6013830080ab1e8283ae32cb8",
+    "passwordHash": "5be81a6d6d82fbfd1a6a22889cf589ee2782b83d7eccca4a37183bae126c407a"
+  },
+  {
     "id": 2,
     "email": "123@gmail.com",
     "name": "Trang",

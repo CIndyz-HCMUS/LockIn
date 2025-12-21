@@ -1,7 +1,11 @@
+// backend/src/server.ts
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 
-const app = createApp();
-app.listen(env.port, () => {
-  console.log(`Backend listening on http://127.0.0.1:${env.port}`);
+const app = await createApp();
+const port = Number(env.port ?? 5179);
+
+app.listen(port, () => {
+  console.log(`[backend] listening on http://127.0.0.1:${port}`);
+  console.log(`[backend] dataDir: ${env.dataDir}`);
 });

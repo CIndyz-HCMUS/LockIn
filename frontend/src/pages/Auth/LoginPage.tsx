@@ -1,141 +1,353 @@
-import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { AuthShell } from "./AuthShell";
-import { login } from "../../services/authService";
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { setToken } from "../../utils/authStorage";
+import { postJson } from "../../services/http";
 
-export function LoginPage() {
+type LoginResponse = {
+  user?: any;
+  session?: { token: string };
+  token?: string; // fallback nếu backend trả token thẳng
+};
+
+export default function LoginPage() {
   const nav = useNavigate();
-  const loc = useLocation();
 
-  const [username, setUsername] = useState(""); // bạn có thể đổi label thành Email
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
+  const [tab, setTab] = useState<"signin" | "signup">("signin");
+
+  const [email, setEmail] = useState("demo@lockin.local");
+  const [password, setPassword] = useState("demo123");
+  const [remember, setRemember] = useState(true);
 
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
 
-  const from = (loc.state as any)?.from || "/dashboard";
+  const canSubmit = useMemo(() => {
+    if (tab !== "signin") return false;
+    return email.trim().length > 0 && password.trim().length > 0 && !loading;
+  }, [email, password, loading, tab]);
 
-  async function handleLogin(kind: "normal" | "google") {
+  async function onSignIn(e?: React.FormEvent) {
+    e?.preventDefault();
+    setError("");
+
+    const em = email.trim().toLowerCase();
+    if (!em.includes("@")) {
+      setError("Please enter a valid email.");
+      return;
+    }
+    if (password.trim().length < 1) {
+      setError("Please enter your password.");
+      return;
+    }
+
     setLoading(true);
-    setErr(null);
     try {
-      // Demo: google cũng gọi API như thường (hoặc bạn để alert)
-      if (kind === "google") {
-        // Nếu chưa làm OAuth thật thì giữ demo alert:
-        // alert("Google OAuth not implemented");
-        // return;
+      const res = (await postJson("/auth/login", {
+        email: em,
+        password,
+        remember,
+      })) as LoginResponse;
+
+      const token = res?.session?.token ?? res?.token;
+      if (!token) {
+        throw new Error("Login response missing token");
       }
 
-      const res = await login(username, password, remember);
-      setToken(res.token, remember);
-      nav(from, { replace: true });
-    } catch (e: any) {
-      setErr(e?.message || "Login failed");
+      setToken(token, remember);
+      nav("/dashboard", { replace: true });
+    } catch (err: any) {
+      setError(err?.message ?? "Sign in failed");
     } finally {
       setLoading(false);
     }
   }
 
+  function onContinueGoogle() {
+    // Tạm thời chưa hỗ trợ OAuth
+    setError("Google sign-in is not available in this demo yet.");
+  }
+
+  function onForgot() {
+    setError("Forgot password is not available in this demo yet.");
+  }
+
   return (
-    <AuthShell active="login">
-      <h2 style={styles.title}>Sign in to continue</h2>
+    <div style={styles.page}>
+      <div style={styles.brand}>LockIn</div>
 
-      <Field label="Username / Email">
-        <input
-          style={styles.input}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Enter your email"
-        />
-      </Field>
+      <div style={styles.tabsWrap}>
+        <button
+          type="button"
+          onClick={() => setTab("signin")}
+          style={{
+            ...styles.tabBtn,
+            ...(tab === "signin" ? styles.tabActive : styles.tabInactive),
+          }}
+        >
+          Sign In
+        </button>
 
-      <Field label="Password">
-        <input
-          style={styles.input}
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter your Password"
-        />
-      </Field>
-
-      <div style={styles.rowBetween}>
-        <label style={styles.checkbox}>
-          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          <span>Remember me</span>
-        </label>
-
-        <button style={styles.linkBtn} type="button" onClick={() => alert("Forgot password chưa làm (demo)")}>
-          Forgot password?
+        <button
+          type="button"
+          onClick={() => setTab("signup")}
+          style={{
+            ...styles.tabBtn,
+            ...(tab === "signup" ? styles.tabActive : styles.tabInactive),
+          }}
+          title="Sign Up is disabled for now"
+        >
+          Sign Up
         </button>
       </div>
 
-      {err ? <div style={{ marginTop: 10, color: "#d00000", fontSize: 12 }}>{err}</div> : null}
+      <div style={styles.card}>
+        <div style={styles.cardTitle}>
+          {tab === "signin" ? "Sign in to continue" : "Sign up (disabled)"}
+        </div>
 
-      <button
-        style={{ ...styles.primaryBtn, opacity: loading ? 0.7 : 1 }}
-        disabled={loading}
-        onClick={() => handleLogin("normal")}
-      >
-        {loading ? "Signing in..." : "Sign In"}
-      </button>
+        {error ? <div style={styles.errorBox}>{error}</div> : null}
 
-      <DividerOr />
+        {tab === "signin" ? (
+          <form onSubmit={onSignIn}>
+            <div style={styles.field}>
+              <label style={styles.label}>Username</label>
+              <input
+                style={styles.input}
+                placeholder="Enter your username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
+              />
+              <div style={styles.hint}>* Use email (e.g. demo@lockin.local)</div>
+            </div>
 
-      <button
-        style={{ ...styles.googleBtn, opacity: loading ? 0.7 : 1 }}
-        disabled={loading}
-        onClick={() => handleLogin("google")}
-      >
-        <GoogleIcon />
-        <span style={{ fontWeight: 800 }}>CONTINUE WITH GOOGLE</span>
-      </button>
-    </AuthShell>
-  );
-}
+            <div style={styles.field}>
+              <label style={styles.label}>Password</label>
+              <input
+                style={styles.input}
+                placeholder="Enter your Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type="password"
+                autoComplete="current-password"
+              />
+            </div>
 
-function Field(props: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginTop: 12 }}>
-      <div style={styles.label}>{props.label}</div>
-      {props.children}
+            <div style={styles.rowBetween}>
+              <label style={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span style={{ marginLeft: 8 }}>Remember me</span>
+              </label>
+
+              <button type="button" onClick={onForgot} style={styles.linkBtn}>
+                Forgot password?
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              style={{
+                ...styles.primaryBtn,
+                ...(canSubmit ? {} : styles.primaryBtnDisabled),
+              }}
+            >
+              {loading ? "Signing In..." : "Sign In"}
+            </button>
+
+            <div style={styles.orRow}>
+              <div style={styles.orLine} />
+              <div style={styles.orText}>OR</div>
+              <div style={styles.orLine} />
+            </div>
+
+            <button type="button" onClick={onContinueGoogle} style={styles.googleBtn}>
+              <span style={styles.googleIcon}>G</span>
+              <span style={{ fontWeight: 700 }}>CONTINUE WITH GOOGLE</span>
+            </button>
+          </form>
+        ) : (
+          <div>
+            <div style={{ color: "#666", marginBottom: 10 }}>
+              Sign Up is temporarily disabled.
+            </div>
+
+            <div style={{ fontSize: 14, color: "#666" }}>
+              (You said we should skip creating new user for now because it involves personal body
+              data.)
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setTab("signin")}
+              style={{ ...styles.primaryBtn, marginTop: 16 }}
+            >
+              Back to Sign In
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-  );
-}
-
-function DividerOr() {
-  return (
-    <div style={styles.orWrap}>
-      <div style={styles.orLine} />
-      <div style={styles.orText}>OR</div>
-      <div style={styles.orLine} />
-    </div>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.2-.4-3.5z" />
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.3 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
-      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.2C29.4 35.7 26.8 36 24 36c-5.3 0-9.8-3.4-11.4-8.1l-6.5 5C9.4 39.6 16.1 44 24 44z" />
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3-3.4 5.4-6.2 6.8l.1.1 6.3 5.2C38 37.6 44 33 44 24c0-1.3-.1-2.2-.4-3.5z" />
-    </svg>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  title: { margin: 0, fontSize: 20, fontWeight: 900 },
-  label: { fontSize: 12, color: "#444", fontWeight: 700, marginBottom: 6 },
-  input: { width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #e7e7e7", background: "#f3f3f3", outline: "none" },
-  rowBetween: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
-  checkbox: { display: "flex", gap: 8, alignItems: "center", color: "#444", fontSize: 12 },
-  linkBtn: { border: "none", background: "transparent", color: "#666", cursor: "pointer", fontSize: 12 },
-  primaryBtn: { width: "100%", marginTop: 14, padding: "12px 14px", borderRadius: 10, border: "1px solid #1f7ae0", background: "#1f7ae0", color: "#fff", fontWeight: 900, cursor: "pointer" },
-  orWrap: { display: "flex", alignItems: "center", gap: 10, marginTop: 14 },
-  orLine: { height: 1, background: "#eee", flex: 1 },
-  orText: { color: "#999", fontSize: 12, fontWeight: 800 },
-  googleBtn: { width: "100%", marginTop: 12, padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd", background: "#fff", display: "flex", gap: 10, alignItems: "center", justifyContent: "center", cursor: "pointer" },
+  page: {
+    minHeight: "100vh",
+    display: "grid",
+    placeItems: "center",
+    padding: 24,
+    background: "#eef6fb",
+    position: "relative",
+    overflow: "hidden",
+  },
+  brand: {
+    position: "absolute",
+    top: 46,
+    fontSize: 64,
+    fontWeight: 800,
+    letterSpacing: 1,
+    background: "linear-gradient(90deg, #a855f7, #22c55e, #3b82f6)",
+    WebkitBackgroundClip: "text",
+    backgroundClip: "text",
+    color: "transparent",
+    userSelect: "none",
+  },
+  tabsWrap: {
+    width: 520,
+    maxWidth: "92vw",
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    background: "#e5e5e5",
+    borderRadius: 999,
+    padding: 6,
+    marginTop: 120,
+    marginBottom: 16,
+    boxShadow: "0 1px 0 rgba(0,0,0,0.04)",
+  },
+  tabBtn: {
+    border: "none",
+    cursor: "pointer",
+    padding: "10px 14px",
+    borderRadius: 999,
+    fontWeight: 700,
+    fontSize: 18,
+    background: "transparent",
+  },
+  tabActive: {
+    background: "#fff",
+    color: "#0b3aa6",
+    boxShadow: "0 1px 10px rgba(0,0,0,0.06)",
+  },
+  tabInactive: {
+    background: "transparent",
+    color: "#222",
+    opacity: 0.85,
+  },
+  card: {
+    width: 520,
+    maxWidth: "92vw",
+    background: "#fff",
+    borderRadius: 16,
+    padding: 28,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+    border: "1px solid rgba(0,0,0,0.06)",
+  },
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: 800,
+    marginBottom: 18,
+  },
+  errorBox: {
+    background: "#fee2e2",
+    border: "1px solid #fecaca",
+    color: "#991b1b",
+    padding: "10px 12px",
+    borderRadius: 10,
+    marginBottom: 14,
+    fontWeight: 600,
+  },
+  field: { marginBottom: 14 },
+  label: {
+    display: "block",
+    fontWeight: 700,
+    marginBottom: 8,
+    color: "#111",
+  },
+  input: {
+    width: "100%",
+    height: 44,
+    borderRadius: 12,
+    border: "1px solid rgba(0,0,0,0.12)",
+    padding: "0 14px",
+    fontSize: 15,
+    outline: "none",
+    background: "#f7f7f7",
+  },
+  hint: { fontSize: 12, marginTop: 6, color: "#777" },
+  rowBetween: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  checkboxRow: { display: "flex", alignItems: "center", fontSize: 14, color: "#333" },
+  linkBtn: {
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    color: "#6b7280",
+    fontSize: 14,
+    textDecoration: "underline",
+  },
+  primaryBtn: {
+    width: "100%",
+    height: 44,
+    borderRadius: 12,
+    border: "none",
+    cursor: "pointer",
+    background: "#1d77e8",
+    color: "#fff",
+    fontWeight: 800,
+    fontSize: 16,
+  },
+  primaryBtnDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  orRow: {
+    display: "grid",
+    gridTemplateColumns: "1fr auto 1fr",
+    gap: 12,
+    alignItems: "center",
+    margin: "16px 0",
+  },
+  orLine: { height: 1, background: "rgba(0,0,0,0.12)" },
+  orText: { fontWeight: 800, color: "#666" },
+  googleBtn: {
+    width: "100%",
+    height: 44,
+    borderRadius: 12,
+    border: "1px solid rgba(0,0,0,0.18)",
+    background: "#fff",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    display: "grid",
+    placeItems: "center",
+    border: "1px solid rgba(0,0,0,0.18)",
+    fontWeight: 900,
+    fontFamily: "Arial, sans-serif",
+  },
 };

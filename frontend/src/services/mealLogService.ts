@@ -1,37 +1,44 @@
+// frontend/src/services/mealLogService.ts
 import { getJson, postJson, delJson } from "./http";
 
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack" | string;
 
 export type MealLog = {
-  id: number;
-  loggedAt: string;
+  id: number | string;
+  date: string; // YYYY-MM-DD
   mealType: MealType;
 
-  foodId: number;
+  foodId?: number | string;
   foodName: string;
-  brand: string | null;
+  brand?: string;
 
-  grams: number;
-
+  grams?: number;
   calories: number;
-  protein: number;
-  carb: number;
-  fat: number;
+
+  createdAt?: string;
+  loggedAt?: string;
 };
 
-export async function listMealLogs(dateKey: string) {
-  return getJson<{ items: MealLog[] }>(`/logs/meals?date=${dateKey}`);
+type ListResponse<T> = { items: T[] } | T[];
+
+/**
+ * GET /logs/meals?date=YYYY-MM-DD
+ */
+export async function listMealLogs(dateKey: string): Promise<ListResponse<MealLog>> {
+  return getJson(`/logs/meals?date=${encodeURIComponent(dateKey)}`);
 }
 
-export async function createMealLog(payload: {
-  dateKey: string;
-  mealType: MealType;
-  foodId: number;
-  grams: number;
-}) {
-  return postJson<MealLog>("/logs/meals", payload);
+/**
+ * POST /logs/meals
+ * body: { date, mealType, foodName, calories, grams?, ... }
+ */
+export async function createMealLog(payload: Partial<MealLog>) {
+  return postJson(`/logs/meals`, payload);
 }
 
-export async function deleteMealLog(id: number) {
-  return delJson<{ ok: true }>(`/logs/meals/${id}`);
+/**
+ * DELETE /logs/meals/:id
+ */
+export async function deleteMealLog(id: number | string) {
+  return delJson(`/logs/meals/${id}`);
 }

@@ -1,30 +1,20 @@
+// frontend/src/services/profileService.ts
 import { getJson, putJson } from "./http";
 
-export type Profile = {
-  name: string;
-  sex: "F" | "M";
-  heightCm: number;
-  weightKg: number;
-  age: number;
-  avatarDataUrl?: string;
-  activityLevel?: "sedentary" | "light" | "moderate" | "active";
-  measurements?: Record<string, number>;
-  goal?: { targetWeightKg?: number };
-  goals?: {
-    calories?: number;
-    waterMl?: number;
-    steps?: number;
-    sleepMinutes?: number;
-    relaxMinutes?: number; // ✅ added
-    
-  };
-  updatedAt: string;
-};
+/**
+ * Nếu em đã có type Profile ở chỗ khác thì thay lại.
+ * Giữ any để chạy được ngay, khỏi kẹt type.
+ */
+export type ProfileDto = any;
 
-export async function getProfile(): Promise<Profile> {
-  return getJson<Profile>("/profile");
+export async function getProfile(): Promise<ProfileDto> {
+  // backend mount: /profile/me
+  const data = await getJson("/profile/me");
+  // tuỳ backend trả { profile } hay trả thẳng object
+  return (data as any)?.profile ?? data;
 }
 
-export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
-  return putJson<Profile>("/profile", patch);
+export async function updateProfile(payload: Partial<ProfileDto>): Promise<ProfileDto> {
+  const data = await putJson("/profile/me", payload);
+  return (data as any)?.profile ?? data;
 }

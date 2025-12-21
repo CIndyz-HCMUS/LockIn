@@ -1,67 +1,69 @@
+// backend/src/app.ts
 import express from "express";
 import cors from "cors";
 
-import { authRouter } from "./modules/auth/auth.router.js";
-import { requireAuth } from "./modules/auth/auth.middleware.js";
-import { ensureSeedDemoUser } from "./modules/auth/auth.repo.js";
-import { relaxationsRouter } from "./modules/relaxations/relaxations.router";
-import { relaxationLogsRouter } from "./modules/relaxations/relaxationLogs.router.js";
+import { env } from "./config/env.js";
+import { ensureSeedDemoUsers } from "./repos/auth.repo.js";
 
+import authRouter from "./routes/auth.routes.js";
+import exercisesRouter from "./routes/exercises.routes.js";
+import profileRouter from "./routes/profile.routes.js";
+import statsRouter from "./routes/stats.routes.js";
+import newsRouter from "./routes/news.routes.js";
+import adminNewsRouter from "./routes/admin/adminNews.routes.js";
 
-import { foodsRouter } from "./modules/foods/foods.router.js";
-import { exercisesRouter } from "./modules/exercises/exercises.router.js";
-import { statsRouter } from "./modules/stats/stats.router.js";
-import { profileRouter } from "./modules/profile/profile.router.js";
+import mealLogsRouter from "./routes/logs/meal.routes.js";
+import workoutLogsRouter from "./routes/logs/workout.routes.js";
+import relaxationLogsRouter from "./routes/logs/relaxation.routes.js";
 
-import { mealLogsRouter } from "./modules/logs/meals/meals.router.js";
-import { workoutLogsRouter } from "./modules/logs/workouts/workouts.router.js";
-import { waterLogsRouter } from "./modules/logs/water/water.router.js";
-import { stepsLogsRouter } from "./modules/logs/steps/steps.router.js";
-import { sleepLogsRouter } from "./modules/logs/sleep/sleep.router.js";
+import { requireAuth } from "./middleware/auth.js";
 
-export function createApp() {
+export async function createApp() {
+  // seed demo user/admin (safe)
+  await ensureSeedDemoUsers().catch((e: unknown) => {
+    console.error("[seed] ensureSeedDemoUsers failed:", e);
+  });
+
   const app = express();
-  void ensureSeedDemoUser();
 
-
-  // Allow FE dev server to call BE
   app.use(
     cors({
       origin: true,
       credentials: true,
     })
   );
-
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "2mb" }));
+  app.use(express.urlencoded({ extended: true }));
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
-  // Catalog
+  // public
   app.use("/auth", authRouter);
 
-  app.use("/profile", profileRouter);
-  app.use("/foods", foodsRouter);
+  // protected
+  app.use(requireAuth);
+
   app.use("/exercises", exercisesRouter);
-  app.use("/relaxations", relaxationsRouter);
-  app.use("/logs/relaxations", relaxationLogsRouter);
-  // Dashboard stats
+  app.use("/profile", profileRouter);
   app.use("/stats", statsRouter);
 
-  // Logs
   app.use("/logs/meals", mealLogsRouter);
   app.use("/logs/workouts", workoutLogsRouter);
-  app.use("/logs/water", waterLogsRouter);
-  app.use("/logs/steps", stepsLogsRouter);
-  app.use("/logs/sleep", sleepLogsRouter);
+  app.use("/logs/relaxation", relaxationLogsRouter);
 
-  // 404
-  app.use((_req, res) => res.status(404).json({ message: "Not found" }));
+  app.use("/news", newsRouter);
+  app.use("/admin/news", adminNewsRouter);
 
-  // Error handler
+  app.use((req, res) => {
+    res.status(404).json({ message: `Not found: ${req.method} ${req.path}` });
+  });
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+  app.use((err: unknown, _req: unknown, res: any, _next: unknown) => {
+    console.error("[error]", err);
+    const status = Number((err as any)?.status || (err as any)?.statusCode || 500);
+    const message = (err as any)?.message ? String((err as any).message) : "Internal server error";
+    res.status(status).json({ message });
   });
 
   return app;
