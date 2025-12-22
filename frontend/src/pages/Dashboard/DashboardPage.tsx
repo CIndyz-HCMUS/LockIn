@@ -4,6 +4,7 @@ import { todayKey } from "../../utils/date";
 import { listMealLogs, type MealLog } from "../../services/mealLogService";
 import { listWorkoutLogs, type WorkoutLog } from "../../services/workoutLogService";
 
+
 type DashboardDto = {
   date: string;
   totals?: {

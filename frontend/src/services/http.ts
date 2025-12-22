@@ -9,10 +9,22 @@ function authHeaders(extra: HeadersInit = {}) {
   return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
 }
 
+function redirectToLogin() {
+  // tránh loop nếu đang ở login
+  if (typeof window === "undefined") return;
+  if (window.location.pathname === "/login") return;
+
+  // giữ lại page đang đứng để sau này có thể quay lại (optional)
+  const from = window.location.pathname + window.location.search;
+  const qs = new URLSearchParams({ from }).toString();
+  window.location.href = `/login?${qs}`;
+}
+
 /**
  * Read response body safely (json/text) and build a readable error message.
+ * If unauthorized -> clear token + redirect to /login.
  */
-async function parseOrThrow(res: Response): Promise<Response> {
+async function parseOrThrow(res: Response, url: string): Promise<Response> {
   if (res.ok) return res;
 
   // default message
@@ -33,13 +45,14 @@ async function parseOrThrow(res: Response): Promise<Response> {
     }
   }
 
-  // If unauthorized, clear token so UI can re-login cleanly
-  if (res.status === 401 || res.status === 403) {
+  // If unauthorized/forbidden, clear token & redirect (except login endpoint)
+  if ((res.status === 401 || res.status === 403) && !url.includes("/auth/login")) {
     try {
       clearToken();
     } catch {
       // ignore
     }
+    redirectToLogin();
   }
 
   throw new Error(msg);
@@ -64,16 +77,14 @@ export async function getJson<T = any>(path: string, init: RequestInit = {}) {
       ...(init.headers || {}),
     }),
   });
-  await parseOrThrow(res);
+  await parseOrThrow(res, url);
 
-  // if empty body (204), return null
   const text = await res.text();
   if (!text) return null as any;
 
   try {
     return JSON.parse(text) as T;
   } catch {
-    // if backend sometimes returns text
     return text as any as T;
   }
 }
@@ -94,7 +105,7 @@ export async function postJson<T = any>(
     }),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  await parseOrThrow(res);
+  await parseOrThrow(res, url);
 
   const text = await res.text();
   if (!text) return null as any;
@@ -122,7 +133,7 @@ export async function putJson<T = any>(
     }),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  await parseOrThrow(res);
+  await parseOrThrow(res, url);
 
   const text = await res.text();
   if (!text) return null as any;
@@ -150,7 +161,7 @@ export async function patchJson<T = any>(
     }),
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  await parseOrThrow(res);
+  await parseOrThrow(res, url);
 
   const text = await res.text();
   if (!text) return null as any;
@@ -176,7 +187,7 @@ export async function delJson<T = any>(path: string, init: RequestInit = {}) {
       ...(init.headers || {}),
     }),
   });
-  await parseOrThrow(res);
+  await parseOrThrow(res, url);
 
   const text = await res.text();
   if (!text) return null as any;

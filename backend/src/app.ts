@@ -10,6 +10,7 @@ import exercisesRouter from "./routes/exercises.routes.js";
 import profileRouter from "./routes/profile.routes.js";
 import statsRouter from "./routes/stats.routes.js";
 import newsRouter from "./routes/news.routes.js";
+import foodsRouter from "./routes/foods.routes.js";
 import adminNewsRouter from "./routes/admin/adminNews.routes.js";
 
 import mealLogsRouter from "./routes/logs/meal.routes.js";
@@ -42,7 +43,7 @@ export async function createApp() {
 
   // protected
   app.use(requireAuth);
-
+  app.use("/foods", foodsRouter);
   app.use("/exercises", exercisesRouter);
   app.use("/profile", profileRouter);
   app.use("/stats", statsRouter);
