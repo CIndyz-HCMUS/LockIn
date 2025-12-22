@@ -1,5 +1,32 @@
 [
   {
+    "id": 1765864673860,
+    "date": "2025-12-22",
+    "title": "Running",
+    "category": "Cardiovascular",
+    "minutes": 30,
+    "caloriesBurned": 0,
+    "loggedAt": "2025-12-22T03:42:55.277Z"
+  },
+  {
+    "id": 1765864673859,
+    "date": "2025-12-22",
+    "title": "Squats",
+    "category": "Strength Training",
+    "minutes": 30,
+    "caloriesBurned": 210,
+    "loggedAt": "2025-12-22T03:06:05.977Z"
+  },
+  {
+    "id": 1765864673858,
+    "date": "2025-12-22",
+    "title": "Push-ups",
+    "category": "Strength Training",
+    "minutes": 30,
+    "caloriesBurned": 180,
+    "loggedAt": "2025-12-22T03:05:47.904Z"
+  },
+  {
     "id": 1765864673857,
     "loggedAt": "2025-12-16T12:00:00",
     "exerciseId": 3,
