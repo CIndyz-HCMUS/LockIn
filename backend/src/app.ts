@@ -13,6 +13,7 @@ import statsRouter from "./routes/stats.routes.js";
 import newsRouter from "./routes/news.routes.js";
 import foodsRouter from "./routes/foods.routes.js";
 import adminNewsRouter from "./routes/admin/adminNews.routes.js";
+import relaxationsRouter from "./routes/relaxations.routes.js";
 
 import mealLogsRouter from "./routes/logs/meal.routes.js";
 import workoutLogsRouter from "./routes/logs/workout.routes.js";
@@ -53,6 +54,7 @@ export async function createApp() {
   app.use("/logs/meals", mealLogsRouter);
   app.use("/logs/workouts", workoutLogsRouter);
   app.use("/logs/relaxation", relaxationLogsRouter);
+  app.use("/relaxations", relaxationsRouter);
 
   app.use("/news", newsRouter);
   app.use("/admin/news", adminNewsRouter);

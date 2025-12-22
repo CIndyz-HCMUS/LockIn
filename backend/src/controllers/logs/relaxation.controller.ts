@@ -1,29 +1,19 @@
-import type { Request, Response } from "express";
-import * as svc from "../../services/logs/relaxation.service.js";
+import * as svc from "../../services/logs/relaxations.service.js";
 
-export async function list(req: Request, res: Response) {
-  const date = String(req.query.date ?? "").trim();
-  if (!date) return res.status(400).json({ message: "date is required" });
-
-  const items = await svc.list(date);
-  res.json({ items });
-}
-
-export async function create(req: Request, res: Response) {
+export async function getAll(_req: any, res: any) {
   try {
-    const item = await svc.createLog(req.body);
-    res.json({ item });
+    const data = svc.listRelaxations();
+    res.json(data);
   } catch (e: any) {
-    res.status(400).json({ message: e?.message ?? "Bad Request" });
+    res.status(500).json({ message: e?.message || "Failed to load relaxations" });
   }
 }
 
-export async function remove(req: Request, res: Response) {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) return res.status(400).json({ message: "Invalid id" });
-
-  const ok = await svc.removeLog(id);
-  if (!ok) return res.status(404).json({ message: "Not found" });
-
-  res.status(204).send();
+export async function createCustom(req: any, res: any) {
+  try {
+    const item = svc.addCustomRelaxation(req.body);
+    res.status(201).json(item);
+  } catch (e: any) {
+    res.status(400).json({ message: e?.message || "Invalid payload" });
+  }
 }

@@ -3,9 +3,11 @@ import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 
 const app = await createApp();
-const port = Number(env.port ?? 5179);
 
-app.listen(port, () => {
-  console.log(`[backend] listening on http://127.0.0.1:${port}`);
+// Render sẽ set process.env.PORT
+const port = Number(process.env.PORT ?? env.port ?? 5179);
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`[backend] listening on port ${port}`);
   console.log(`[backend] dataDir: ${env.dataDir}`);
 });

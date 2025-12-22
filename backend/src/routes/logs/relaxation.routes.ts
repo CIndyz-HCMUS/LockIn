@@ -3,8 +3,7 @@ import * as ctrl from "../../controllers/logs/relaxation.controller.js";
 
 const router = Router();
 
-router.get("/", ctrl.list);
-router.post("/", ctrl.create);
-router.delete("/:id", ctrl.remove);
+router.get("/", ctrl.getAll);
+router.post("/custom", ctrl.createCustom);
 
 export default router;
