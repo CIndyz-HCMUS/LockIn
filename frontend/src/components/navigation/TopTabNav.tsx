@@ -43,7 +43,8 @@ export function TopTabsNav() {
       <Tab to="/relaxation" label="Relaxation" />
       <Tab to="/report" label="Report" />
       <Tab to="/my-plan" label="My Plan" />
-
+        <Tab to="/admin" label="Admin" />
+        
       <div style={{ marginLeft: "auto", fontWeight: 900, color: "#333" }}>Q&amp;A</div>
     </div>
   );

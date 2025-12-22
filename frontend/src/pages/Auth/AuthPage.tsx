@@ -5,6 +5,28 @@ import { setToken } from "../../utils/authStorage";
 
 type Tab = "signin" | "signup";
 
+function extractToken(out: any) {
+  return (
+    out?.token ??
+    out?.session?.token ??
+    out?.data?.token ??
+    out?.data?.session?.token ??
+    out?.data?.sessionToken ??
+    out?.data?.accessToken
+  );
+}
+
+function extractUser(out: any) {
+  return out?.user ?? out?.data?.user ?? out?.data?.profile;
+}
+
+function syncDemoAdmin(user: any) {
+  try {
+    if (user?.role === "admin") localStorage.setItem("demo_admin", "1");
+    else localStorage.removeItem("demo_admin");
+  } catch {}
+}
+
 export default function AuthPage() {
   const nav = useNavigate();
   const [tab, setTab] = useState<Tab>("signup");
@@ -60,11 +82,14 @@ export default function AuthPage() {
         remember: true,
       });
 
-      const token = out?.token ?? out?.data?.token;
+      const token = extractToken(out);
       if (!token) throw new Error("Không nhận được token từ /auth/login");
 
-      // nếu authStorage của em bắt buộc remember param: setToken(token, true)
       setToken(token as string, true);
+
+      // ✅ bật tab Admin nếu user là admin
+      const user = extractUser(out);
+      syncDemoAdmin(user);
 
       nav("/onboarding", { replace: true });
     } catch (e: any) {
@@ -87,12 +112,15 @@ export default function AuthPage() {
         remember: true,
       });
 
-      const token = out?.token ?? out?.data?.token;
+      const token = extractToken(out);
       if (!token) throw new Error("Không nhận được token từ /auth/login");
 
       setToken(token as string, true);
 
-      // đăng nhập xong → để guard quyết định vào onboarding hay dashboard
+      // ✅ bật tab Admin nếu user là admin
+      const user = extractUser(out);
+      syncDemoAdmin(user);
+
       nav("/dashboard", { replace: true });
     } catch (e: any) {
       setErr(e?.message ?? "Sign in thất bại");

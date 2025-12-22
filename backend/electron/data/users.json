@@ -1,21 +1,13 @@
 [
   {
-    "id": 3,
-    "email": "123456@gmail.com",
-    "name": "Trang  Vu",
-    "age": 20,
-    "createdAt": "2025-12-21T00:30:00.317Z",
-    "salt": "d89b55f6013830080ab1e8283ae32cb8",
-    "passwordHash": "5be81a6d6d82fbfd1a6a22889cf589ee2782b83d7eccca4a37183bae126c407a"
-  },
-  {
     "id": 2,
     "email": "123@gmail.com",
-    "name": "Trang",
+    "name": "trang vu",
     "age": 20,
-    "createdAt": "2025-12-14T13:49:37.307Z",
-    "salt": "2781860e87b33a95adba7e8f7342b008",
-    "passwordHash": "79e0cf3c1d7e83dbec3929c3cf6a38d9d27d35a107a9623276456e061cce1a53"
+    "createdAt": "2025-12-22T15:10:59.103Z",
+    "salt": "e98e7797e3ef85b68bf2d0e507711e59",
+    "passwordHash": "a503624b3e2cefbb0eb26346546e162318536ac6f23e4fc82d770c6506dbcb58",
+    "role": "user"
   },
   {
     "id": 1,
@@ -24,6 +16,7 @@
     "age": 20,
     "createdAt": "2025-12-14T13:48:54.192Z",
     "salt": "27a8f8142b7db40f90715993adaf16d2",
-    "passwordHash": "49d53a02f0f219a2acd49292a684bee5616133c1db970750dc01d3581d3e3c1d"
+    "passwordHash": "49d53a02f0f219a2acd49292a684bee5616133c1db970750dc01d3581d3e3c1d",
+    "role": "admin"
   }
 ]

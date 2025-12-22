@@ -1,3 +1,4 @@
+// frontend/src/app/routes.tsx
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { MainShellLayout } from "../layouts/MainShellLayout";
@@ -13,6 +14,9 @@ import { RelaxationPage } from "../pages/Relaxation/RelaxationPage";
 import { ReportPage } from "../pages/Report/ReportPage";
 import { MyPlanPage } from "../pages/MyPlan/MyPlanPage";
 import { ProfilePage } from "../pages/Profile/ProfilePage";
+
+// ✅ ADD THIS
+import { AdminPage }from "../pages/Admin/AdminPage";
 
 export function AppRoutes() {
   return (
@@ -39,6 +43,9 @@ export function AppRoutes() {
         <Route path="/report" element={<ReportPage />} />
         <Route path="/my-plan" element={<MyPlanPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+
+        {/* ✅ ADD THIS */}
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
 
       {/* fallback */}

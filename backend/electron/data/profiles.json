@@ -1,6 +1,30 @@
 {
   "items": [
     {
+      "userId": 2,
+      "name": "Trang ",
+      "age": 20,
+      "updatedAt": "2025-12-22T15:19:57.106Z",
+      "sex": "F",
+      "weightKg": 50,
+      "heightCm": 160,
+      "activityLevel": "moderate",
+      "goal": {
+        "targetWeightKg": 48,
+        "goalType": "lose"
+      },
+      "goals": {
+        "calories": 1720,
+        "waterMl": 2000,
+        "steps": 8000,
+        "sleepMinutes": 450
+      },
+      "bmi": 19.531249999999996,
+      "bmr": 1239,
+      "tdee": 1920.45,
+      "activityFactor": 1.55
+    },
+    {
       "userId": 1,
       "name": "Trang",
       "age": 20,

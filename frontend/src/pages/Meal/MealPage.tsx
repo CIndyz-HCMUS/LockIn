@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { delJson, getJson, postJson } from "../../services/http";
-import { searchFoods, type Food } from "../../services/foodService";
+import { searchFoods, createCustomFood, type Food } from "../../services/foodService";
 import {todayKey } from "../../utils/date";
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -231,11 +231,11 @@ export function MealPage() {
         caloriesPer100g: kcal100,
         servingSizeG: servingG,
         servingLabel: cServingLabel?.trim() || undefined,
-        imageDataUrl: cImg || undefined, // backend should save to electron/data/assets + return imagePrimaryUri
+        imageBase64: cImg || undefined, // data URL
       };
 
-      const res = await postJson<{ item: Food }>("/foods/custom", payload);
-      const created = res?.item;
+      const created = await createCustomFood(payload);
+
 
       if (created) {
         setAllFoods((cur) => [created, ...cur]);
