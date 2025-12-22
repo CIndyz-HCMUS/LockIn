@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getJson } from "../../services/http";
 import { todayKey } from "../../utils/date";
 import { listMealLogs, type MealLog } from "../../services/mealLogService";
 import { listWorkoutLogs, type WorkoutLog } from "../../services/workoutLogService";
-
+import { clearToken } from "../../utils/authStorage";
 
 type DashboardDto = {
   date: string;
@@ -25,6 +26,43 @@ type NewsItem = {
   coverUrl?: string;
 };
 
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string) || "http://127.0.0.1:5179";
+
+function assetUrl(uri?: string | null) {
+  const s = String(uri ?? "").trim();
+  if (!s) return "";
+  // ✅ hỗ trợ data/blob/file luôn (rất hay gặp nếu em upload ảnh)
+  if (/^(https?:|data:|blob:|file:)/i.test(s)) return s;
+  if (s.startsWith("/")) return `${API_BASE}${s}`;
+  return `${API_BASE}/${s}`;
+}
+
+function imgOf(x: any): string {
+  if (!x) return "";
+  return assetUrl(
+    x.imageUrl ??
+      x.imagePrimaryUri ??
+      x.imageUri ??
+      x.thumbnailUrl ??
+      x.thumbUrl ??
+      x.coverUrl ??
+      ""
+  );
+}
+
+// meals hay bị để ở field khác nhau → gom lại cho chắc
+function mealImgOf(m: any): string {
+  return imgOf(
+    m?.imageUrl ||
+      m?.foodImageUrl ||
+      m?.food?.imageUrl ||
+      m?.food?.imageUri ||
+      m?.food?.thumbnailUrl ||
+      null
+  );
+}
+
 function safeNum(x: any) {
   const n = Number(x);
   return Number.isFinite(n) ? n : 0;
@@ -38,6 +76,7 @@ function formatDateTime(iso?: string) {
 }
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [dateKey, setDateKey] = useState(todayKey());
 
   const [stats, setStats] = useState<DashboardDto | null>(null);
@@ -67,7 +106,8 @@ export function DashboardPage() {
       const meals = (mealsRes as any)?.items ?? mealsRes;
       setMealLogs(Array.isArray(meals) ? meals : []);
 
-      setWorkoutLogs(Array.isArray(workoutsRes) ? workoutsRes : []);
+      const workouts = (workoutsRes as any)?.items ?? workoutsRes;
+      setWorkoutLogs(Array.isArray(workouts) ? workouts : []);
 
       // news (nếu backend chưa có thì vẫn không crash)
       try {
@@ -108,7 +148,8 @@ export function DashboardPage() {
   const totalWorkoutKcal = useMemo(
     () =>
       workoutLogs.reduce(
-        (s, x: any) => s + safeNum(x.caloriesBurned ?? x.calories_burned ?? x.kcal),
+        (s, x: any) =>
+          s + safeNum(x.caloriesBurned ?? x.calories_burned ?? x.kcal),
         0
       ),
     [workoutLogs]
@@ -116,46 +157,110 @@ export function DashboardPage() {
 
   // ưu tiên totals backend nếu có
   const totalIn = stats?.totals?.caloriesIn ?? totalMealKcal;
-  const totalBurned = stats?.totals?.totalCaloriesBurned ?? totalWorkoutKcal;
-  const net = (stats?.totals?.netCalories ?? safeNum(totalIn) - safeNum(totalBurned)) as number;
+  const totalBurned =
+    stats?.totals?.totalCaloriesBurned ?? totalWorkoutKcal;
+  const net = (stats?.totals?.netCalories ??
+    safeNum(totalIn) - safeNum(totalBurned)) as number;
+
+  function onLogout() {
+    clearToken();
+    navigate("/auth", { replace: true });
+  }
 
   return (
     <div>
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
         <div>
-          <div style={{ fontSize: 12, color: "#666", fontWeight: 900 }}>TODAY, DATE</div>
-          <input type="date" value={dateKey} onChange={(e) => setDateKey(e.target.value)} />
+          <div style={{ fontSize: 12, color: "#666", fontWeight: 900 }}>
+            TODAY, DATE
+          </div>
+          <input
+            type="date"
+            value={dateKey}
+            onChange={(e) => setDateKey(e.target.value)}
+          />
         </div>
 
-        <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: 12,
-            border: "1px solid #ddd",
-            background: "#5a7cff",
-            color: "#fff",
-            fontWeight: 1000,
-            opacity: 0.85,
-          }}
-          title="Main page is read-only"
-        >
-          Overview (read-only)
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid #ddd",
+              background: "#5a7cff",
+              color: "#fff",
+              fontWeight: 1000,
+              opacity: 0.85,
+            }}
+            title="Main page is read-only"
+          >
+            Overview (read-only)
+          </div>
+
+          <button
+            style={{
+              ...styles.smallBtn,
+              background: "#fff5f5",
+              borderColor: "#ffcccc",
+              color: "#b00020",
+            }}
+            onClick={onLogout}
+            title="Log out"
+          >
+            Logout
+          </button>
         </div>
       </div>
 
       {err ? (
-        <div style={{ marginTop: 12, background: "#fff5f5", border: "1px solid #ffcccc", borderRadius: 12, padding: 12, color: "#b00020", fontWeight: 900 }}>
+        <div
+          style={{
+            marginTop: 12,
+            background: "#fff5f5",
+            border: "1px solid #ffcccc",
+            borderRadius: 12,
+            padding: 12,
+            color: "#b00020",
+            fontWeight: 900,
+          }}
+        >
           {err}
         </div>
       ) : null}
 
       {/* SUMMARY */}
-      <div style={{ marginTop: 12, background: "#fff", border: "2px solid #4da3ff", borderRadius: 12, padding: 14 }}>
+      <div
+        style={{
+          marginTop: 12,
+          background: "#fff",
+          border: "2px solid #4da3ff",
+          borderRadius: 12,
+          padding: 14,
+        }}
+      >
         <div style={{ fontWeight: 1000, fontSize: 12 }}>TODAY SUMMARY</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+            marginTop: 12,
+          }}
+        >
           <MiniCard title="Calories In" value={safeNum(totalIn)} unit="kcal" />
-          <MiniCard title="Calories Burned" value={safeNum(totalBurned)} unit="kcal" />
+          <MiniCard
+            title="Calories Burned"
+            value={safeNum(totalBurned)}
+            unit="kcal"
+          />
           <MiniCard title="Net" value={safeNum(net)} unit="kcal" />
         </div>
       </div>
@@ -167,21 +272,43 @@ export function DashboardPage() {
         empty={mealLogs.length === 0 ? "No meals logged for this day." : ""}
       >
         <div style={{ display: "grid", gap: 8 }}>
-          {mealLogs.map((m: any) => (
-            <div key={m.id ?? `${m.foodName}-${m.loggedAt ?? ""}`} style={styles.listRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={styles.rowTitle}>
-                  {m.foodName ?? "Food"}
-                  {m.brand ? <span style={{ color: "#777", fontWeight: 800 }}> • {m.brand}</span> : null}
+          {mealLogs.map((m: any) => {
+            const u = mealImgOf(m);
+            return (
+              <div
+                key={m.id ?? `${m.foodName}-${m.loggedAt ?? ""}`}
+                style={styles.listRow}
+              >
+                <div style={styles.thumbWrap}>
+                  {u ? (
+                    <img src={u} alt="" style={styles.thumb} />
+                  ) : (
+                    <div style={styles.thumbPlaceholder} />
+                  )}
                 </div>
-                <div style={styles.rowSub}>
-                  {m.mealType ? <b>{String(m.mealType).toUpperCase()}</b> : null}
-                  {m.grams ? <> • {m.grams}g</> : null}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.rowTitle}>
+                    {m.foodName ?? "Food"}
+                    {m.brand ? (
+                      <span style={{ color: "#777", fontWeight: 800 }}>
+                        {" "}
+                        • {m.brand}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div style={styles.rowSub}>
+                    {m.mealType ? (
+                      <b>{String(m.mealType).toUpperCase()}</b>
+                    ) : null}
+                    {m.grams ? <> • {m.grams}g</> : null}
+                  </div>
                 </div>
+
+                <div style={styles.kcal}>{safeNum(m.calories)} kcal</div>
               </div>
-              <div style={styles.kcal}>{safeNum(m.calories)} kcal</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Section>
 
@@ -189,34 +316,72 @@ export function DashboardPage() {
       <Section
         title="Activities today"
         right={`${safeNum(totalBurned)} kcal`}
-        empty={workoutLogs.length === 0 ? "No activities logged for this day." : ""}
+        empty={
+          workoutLogs.length === 0 ? "No activities logged for this day." : ""
+        }
       >
         <div style={{ display: "grid", gap: 8 }}>
-          {workoutLogs.map((w: any) => (
-            <div key={w.id ?? `${w.title}-${w.loggedAt ?? ""}`} style={styles.listRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={styles.rowTitle}>{w.title ?? w.exerciseTitle ?? "Activity"}</div>
-                <div style={styles.rowSub}>
-                  {w.minutes ? <>{w.minutes} min</> : <span style={{ color: "#999" }}>—</span>}
+          {workoutLogs.map((w: any) => {
+            const u = imgOf(w); // workout log có imageUrl rồi
+            return (
+              <div
+                key={w.id ?? `${w.title}-${w.loggedAt ?? ""}`}
+                style={styles.listRow}
+              >
+                <div style={styles.thumbWrap}>
+                  {u ? (
+                    <img src={u} alt="" style={styles.thumb} />
+                  ) : (
+                    <div style={styles.thumbPlaceholder} />
+                  )}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={styles.rowTitle}>
+                    {w.title ?? "Activity"}
+                    {w.category ? (
+                      <span style={{ color: "#777", fontWeight: 800 }}>
+                        {" "}
+                        • {w.category}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div style={styles.rowSub}>
+                    {w.minutes ? <> • {w.minutes} min</> : null}
+                    {w.loggedAt ? <> • {formatDateTime(w.loggedAt)}</> : null}
+                  </div>
+                </div>
+
+                <div style={styles.kcal}>
+                  {safeNum(w.caloriesBurned ?? w.calories_burned ?? w.kcal)} kcal
                 </div>
               </div>
-              <div style={styles.kcal}>
-                {safeNum(w.caloriesBurned ?? w.calories_burned ?? w.kcal)} kcal
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Section>
 
       {/* NEWS */}
-      <Section title="News" right="Admin posts" empty={news.length === 0 ? "No news yet." : ""}>
+      <Section
+        title="News"
+        right="Admin posts"
+        empty={news.length === 0 ? "No news yet." : ""}
+      >
         <div style={{ display: "grid", gap: 10 }}>
           {news.map((n) => (
             <div key={String(n.id)} style={styles.newsCard}>
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <div style={styles.newsThumb}>
                   {n.coverUrl ? (
-                    <img src={n.coverUrl} alt={n.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img
+                      src={n.coverUrl}
+                      alt={n.title}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
                   ) : null}
                 </div>
 
@@ -226,8 +391,9 @@ export function DashboardPage() {
                     {n.excerpt
                       ? n.excerpt
                       : n.content
-                        ? String(n.content).slice(0, 90) + (String(n.content).length > 90 ? "…" : "")
-                        : ""}
+                      ? String(n.content).slice(0, 90) +
+                        (String(n.content).length > 90 ? "…" : "")
+                      : ""}
                   </div>
                   <div style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
                     {n.createdAt ? formatDateTime(n.createdAt) : ""}
@@ -261,9 +427,24 @@ export function DashboardPage() {
           }}
         >
           <div style={modalStyles.card} onMouseDown={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "center",
+              }}
+            >
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 1000, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div
+                  style={{
+                    fontWeight: 1000,
+                    fontSize: 16,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
                   {activeNews?.title ?? "News"}
                 </div>
                 <div style={{ fontSize: 12, color: "#777", marginTop: 4 }}>
@@ -278,12 +459,31 @@ export function DashboardPage() {
             </div>
 
             {activeNews?.coverUrl ? (
-              <div style={{ marginTop: 12, borderRadius: 12, overflow: "hidden", border: "1px solid #eee" }}>
-                <img src={activeNews.coverUrl} alt="cover" style={{ width: "100%", maxHeight: 220, objectFit: "cover" }} />
+              <div
+                style={{
+                  marginTop: 12,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  border: "1px solid #eee",
+                }}
+              >
+                <img
+                  src={activeNews.coverUrl}
+                  alt="cover"
+                  style={{ width: "100%", maxHeight: 220, objectFit: "cover" }}
+                />
               </div>
             ) : null}
 
-            <div style={{ marginTop: 12, fontSize: 14, color: "#222", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 14,
+                color: "#222",
+                whiteSpace: "pre-wrap",
+                lineHeight: 1.5,
+              }}
+            >
               {activeNews?.content ?? activeNews?.excerpt ?? ""}
             </div>
           </div>
@@ -293,7 +493,15 @@ export function DashboardPage() {
   );
 }
 
-function MiniCard({ title, value, unit }: { title: string; value: number; unit: string }) {
+function MiniCard({
+  title,
+  value,
+  unit,
+}: {
+  title: string;
+  value: number;
+  unit: string;
+}) {
   return (
     <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 10 }}>
       <div style={{ fontSize: 12, color: "#666", fontWeight: 900 }}>{title}</div>
@@ -390,6 +598,17 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
     border: "1px solid #eee",
   },
+  thumbWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    overflow: "hidden",
+    background: "#eee",
+    flexShrink: 0,
+    border: "1px solid #eee",
+  },
+  thumb: { width: "100%", height: "100%", objectFit: "cover" },
+  thumbPlaceholder: { width: "100%", height: "100%", background: "#e9ecef" },
 };
 
 const modalStyles: Record<string, React.CSSProperties> = {

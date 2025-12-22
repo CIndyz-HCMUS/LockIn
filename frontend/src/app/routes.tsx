@@ -1,9 +1,10 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { MainShellLayout } from "../layouts/MainShellLayout";
-import { RequireAuth } from "./RequireAuth";
+import RequireAuth from "./RequireAuth";
 
-import LoginPage from "../pages/Auth/LoginPage";
+import AuthPage from "../pages/Auth/AuthPage";
+import OnboardingPage from "../pages/Onboarding/OnboardingPage";
 
 import { DashboardPage } from "../pages/Dashboard/DashboardPage";
 import { MealPage } from "../pages/Meal/MealPage";
@@ -16,10 +17,11 @@ import { ProfilePage } from "../pages/Profile/ProfilePage";
 export function AppRoutes() {
   return (
     <Routes>
-      {/* public */}
-      <Route path="/login" element={<LoginPage />} />
+      {/* ✅ public */}
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/login" element={<Navigate to="/auth" replace />} />
 
-      {/* protected */}
+      {/* ✅ protected */}
       <Route
         element={
           <RequireAuth>
@@ -27,6 +29,8 @@ export function AppRoutes() {
           </RequireAuth>
         }
       >
+        <Route path="/onboarding" element={<OnboardingPage />} />
+
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/meal" element={<MealPage />} />

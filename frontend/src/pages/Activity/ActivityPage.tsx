@@ -30,6 +30,10 @@ function safeNum(x: any) {
 function assetUrl(uri?: string | null) {
   const s = String(uri ?? "").trim();
   if (!s) return "";
+
+  // allow inline/local urls
+  if (/^(data|blob|file):/i.test(s)) return s;
+
   if (/^https?:\/\//i.test(s)) return s;
   if (s.startsWith("/")) return `${API_BASE}${s}`;
   return `${API_BASE}/${s}`;
@@ -73,6 +77,15 @@ export function ActivityPage() {
   const [cCaloriesPerMin, setCCaloriesPerMin] = useState(8);
   const [cImageUrl, setCImageUrl] = useState("");
 
+  // ✅ fix crash when selected = null
+  const pickedImage =
+    (selected as any)?.imageUrl ??
+    (selected as any)?.imagePrimaryUri ??
+    (selected as any)?.imageUri ??
+    (selected as any)?.thumbnailUrl ??
+    (selected as any)?.thumbUrl ??
+    undefined;
+
   async function load() {
     setLoading(true);
     setErr("");
@@ -95,10 +108,7 @@ export function ActivityPage() {
   async function loadExercises(override?: { query?: string; category?: string }) {
     const query = override?.query ?? q;
     const category = override?.category ?? cat;
-    const [a, b] = await Promise.all([
-      searchExercises({ query, category }),
-      listFavoriteExercises(),
-    ]);
+    const [a, b] = await Promise.all([searchExercises({ query, category }), listFavoriteExercises()]);
     setResults(Array.isArray(a?.items) ? a.items : []);
     setFav(Array.isArray(b?.items) ? b.items : []);
   }
@@ -145,7 +155,7 @@ export function ActivityPage() {
         category: lockedCat || selected.category || "Other",
         minutes: min,
         caloriesBurned: kk,
-        imageUrl: selected.imageUrl || undefined,
+        imageUrl: pickedImage, // can be data:/blob:/file:/http:/relative
       });
       setOpenChoose(false);
       setLockedCat(null);
@@ -201,14 +211,12 @@ export function ActivityPage() {
       const k = String(it.category || "Other");
       (map[k] ||= []).push(it);
     }
-    // ensure order + include missing categories
-    const out = [
+    return [
       ...CAT_ORDER.map((k) => ({ key: k, items: map[k] || [] })),
       ...Object.keys(map)
         .filter((k) => !CAT_ORDER.includes(k))
         .map((k) => ({ key: k, items: map[k] || [] })),
     ];
-    return out;
   }, [items]);
 
   const favIds = useMemo(() => new Set(fav.map((x) => String(x.id))), [fav]);
@@ -218,9 +226,7 @@ export function ActivityPage() {
       <div style={styles.header}>
         <div>
           <h1 style={styles.h1}>Activity Diary</h1>
-          <div style={styles.sub}>
-            Choose activities (from exercises.json + exercises.custom.json)
-          </div>
+          <div style={styles.sub}>Choose activities (from exercises.json + exercises.custom.json)</div>
         </div>
 
         <div style={styles.headerRight}>
@@ -269,17 +275,11 @@ export function ActivityPage() {
                     <div key={it.id} style={styles.row}>
                       <div style={styles.rowLeft}>
                         <div style={styles.thumbWrap}>
-                          {imgOf(it) ? (
-                            <img src={imgOf(it)} alt="" style={styles.thumb} />
-                          ) : (
-                            <div style={styles.thumbPlaceholder} />
-                          )}
+                          {imgOf(it) ? <img src={imgOf(it)} alt="" style={styles.thumb} /> : <div style={styles.thumbPlaceholder} />}
                         </div>
                         <div>
                           <div style={styles.rowTitle}>{it.title}</div>
-                          <div style={styles.rowMeta}>
-                            {it.minutes} min • {new Date(it.createdAt || Date.now()).toLocaleTimeString()}
-                          </div>
+                          <div style={styles.rowMeta}>{it.minutes} min • {new Date(it.createdAt || Date.now()).toLocaleTimeString()}</div>
                         </div>
                       </div>
 
@@ -310,12 +310,7 @@ export function ActivityPage() {
             <h2 style={styles.modalTitle}>Choose activity</h2>
 
             <div style={styles.modalTop}>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search activity name..."
-                style={styles.searchInput}
-              />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search activity name..." style={styles.searchInput} />
               <select
                 value={cat}
                 disabled={!!lockedCat}
@@ -393,13 +388,7 @@ export function ActivityPage() {
             <div style={styles.modalActions}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={styles.label}>Minutes</span>
-                <input
-                  type="number"
-                  value={minutes}
-                  min={1}
-                  onChange={(e) => setMinutes(Number(e.target.value))}
-                  style={styles.minutesInput}
-                />
+                <input type="number" value={minutes} min={1} onChange={(e) => setMinutes(Number(e.target.value))} style={styles.minutesInput} />
               </div>
 
               <div style={{ display: "flex", gap: 10 }}>
@@ -445,13 +434,7 @@ export function ActivityPage() {
 
               <label style={styles.field}>
                 <span style={styles.label}>Calories / min</span>
-                <input
-                  type="number"
-                  value={cCaloriesPerMin}
-                  min={0}
-                  onChange={(e) => setCCaloriesPerMin(Number(e.target.value))}
-                  style={styles.input}
-                />
+                <input type="number" value={cCaloriesPerMin} min={0} onChange={(e) => setCCaloriesPerMin(Number(e.target.value))} style={styles.input} />
               </label>
 
               <label style={styles.field}>

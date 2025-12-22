@@ -1,21 +1,22 @@
-const LS = "lockin_token";
-const SS = "lockin_token_session";
+const TOKEN_KEY = "lockin_token";
 
-export function getToken(): string | null {
-  return localStorage.getItem(LS) || sessionStorage.getItem(SS);
-}
-
-export function setToken(token: string, remember: boolean) {
+export function setToken(token: string, remember: boolean = true) {
   if (remember) {
-    localStorage.setItem(LS, token);
-    sessionStorage.removeItem(SS);
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.removeItem(TOKEN_KEY);
   } else {
-    sessionStorage.setItem(SS, token);
-    localStorage.removeItem(LS);
+    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.removeItem(TOKEN_KEY);
   }
 }
 
+export function getToken(remember: boolean = true) {
+  return remember
+    ? localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY)
+    : sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+}
+
 export function clearToken() {
-  localStorage.removeItem(LS);
-  sessionStorage.removeItem(SS);
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
 }
