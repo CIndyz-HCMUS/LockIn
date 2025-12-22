@@ -1,6 +1,7 @@
 // backend/src/app.ts
 import express from "express";
 import cors from "cors";
+import path from "node:path";
 
 import { env } from "./config/env.js";
 import { ensureSeedDemoUsers } from "./repos/auth.repo.js";
@@ -40,6 +41,7 @@ export async function createApp() {
 
   // public
   app.use("/auth", authRouter);
+  app.use("/assets", express.static(path.join(env.dataDir, "assets")));
 
   // protected
   app.use(requireAuth);

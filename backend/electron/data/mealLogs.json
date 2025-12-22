@@ -1,5 +1,33 @@
 [
   {
+    "id": 1765856783901,
+    "date": "2025-12-22",
+    "mealType": "breakfast",
+    "foodName": "Apple",
+    "brand": null,
+    "grams": 100,
+    "calories": 52,
+    "loggedAt": "2025-12-22T02:32:39.556Z"
+  },
+  {
+    "id": 1765856783900,
+    "date": "2025-12-22",
+    "mealType": "lunch",
+    "foodName": "Milk (whole)",
+    "grams": 240,
+    "calories": 146,
+    "loggedAt": "2025-12-22T02:02:43.547Z"
+  },
+  {
+    "id": 1765856783899,
+    "date": "2025-12-22",
+    "mealType": "breakfast",
+    "foodName": "Chicken breast",
+    "grams": 100,
+    "calories": 165,
+    "loggedAt": "2025-12-22T01:49:42.612Z"
+  },
+  {
     "id": 1765856783898,
     "date": "2025-12-22",
     "mealType": "snacks",
@@ -9,15 +37,6 @@
     "loggedAt": "2025-12-22T00:46:54.896Z"
   },
   {
-    "id": 1765856783897,
-    "date": "2025-12-22",
-    "mealType": "lunch",
-    "foodName": "Greek yogurt (plain)",
-    "grams": 170,
-    "calories": 100,
-    "loggedAt": "2025-12-22T00:46:49.253Z"
-  },
-  {
     "id": 1765856783896,
     "date": "2025-12-22",
     "mealType": "dinner",
@@ -25,15 +44,6 @@
     "grams": 118,
     "calories": 105,
     "loggedAt": "2025-12-22T00:46:44.738Z"
-  },
-  {
-    "id": 1765856783895,
-    "date": "2025-12-22",
-    "mealType": "breakfast",
-    "foodName": "Apple",
-    "grams": 182,
-    "calories": 95,
-    "loggedAt": "2025-12-22T00:46:38.864Z"
   },
   {
     "id": 1765856783894,
