@@ -12,7 +12,7 @@
 `npm install lockin-root`
 
 # Test:
-`npm test`
+`npm run dev:desktop`
 
 #License:
 
