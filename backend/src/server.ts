@@ -4,7 +4,7 @@ import { env } from "./config/env.js";
 
 const app = await createApp();
 
-// Render sẽ set process.env.PORT
+// Render sẽ set PORT, local vẫn chạy theo env.port hoặc 5179
 const port = Number(process.env.PORT ?? env.port ?? 5179);
 
 app.listen(port, "0.0.0.0", () => {

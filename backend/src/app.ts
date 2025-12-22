@@ -22,12 +22,35 @@ import relaxationLogsRouter from "./routes/logs/relaxation.routes.js";
 import { requireAuth } from "./middleware/auth.js";
 
 export async function createApp() {
-  // seed demo user/admin (safe)
-  await ensureSeedDemoUsers().catch((e: unknown) => {
-    console.error("[seed] ensureSeedDemoUsers failed:", e);
-  });
-
   const app = express();
+
+  // ===== CORS (Deploy) =====
+  // Set trên Render: CORS_ORIGINS="https://xxx.netlify.app,http://localhost:5173"
+  const origins = (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, cb) => {
+      // origin undefined => curl/postman/same-origin
+      if (!origin) return cb(null, true);
+
+      // nếu chưa set env thì tạm allow all để khỏi “kẹt” lúc demo
+      if (origins.length === 0) return cb(null, true);
+
+      if (origins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS blocked: ${origin}`));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  };
+    const corsMw = cors(corsOptions);
+  app.use(corsMw);
+  app.options("*", corsMw);
+  // =========================
+
+  app.use(express.json());
 
   app.use(
     cors({
